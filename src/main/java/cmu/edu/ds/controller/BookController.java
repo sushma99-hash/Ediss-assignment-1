@@ -6,8 +6,11 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -41,7 +44,8 @@ public class BookController {
             return ResponseEntity.status(HttpStatus.CREATED).body(savedBook);
         } catch (IllegalArgumentException e) {
             // Return HTTP 422 UNPROCESSABLE_ENTITY if validation fails
-            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body("{ \"message\": \"" + e.getMessage() + "\" }");
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                    .body(Map.of("message", e.getMessage()));
         }
     }
 
@@ -53,15 +57,18 @@ public class BookController {
      * @return ResponseEntity with the updated book or error message
      */
     @PutMapping("/{ISBN}")
-    public ResponseEntity<?> updateBook(@PathVariable String ISBN, @RequestBody Book book) {
+    public ResponseEntity<?> updateBook(@PathVariable String ISBN, @Valid @RequestBody Book book) {
         try {
+            // Set the ISBN to ensure it matches the path variable
+            book.setISBN(ISBN);
             // Attempt to update the book with the given ISBN
             Book updatedBook = bookService.updateBook(ISBN, book);
             // Return HTTP 200 OK with the updated book if successful
             return ResponseEntity.ok(updatedBook);
         } catch (RuntimeException e) {
             // Return HTTP 404 NOT_FOUND if the book doesn't exist
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("{ \"message\": \"Book not found\" }");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "Book not found"));
         }
     }
 
@@ -79,5 +86,21 @@ public class BookController {
         return book.<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Map.of("message", "Book not found")));
+    }
+
+    /**
+     * Exception handler for validation errors.
+     * This will convert validation errors to a structured response.
+     */
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Map<String, String> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        return errors;
     }
 }
