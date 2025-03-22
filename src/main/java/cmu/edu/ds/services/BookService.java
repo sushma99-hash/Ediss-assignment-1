@@ -27,21 +27,16 @@ public class BookService {
         // Validate book details first
         validateBook(bookDetails);
 
-        Book book = bookRepository.findById(ISBN)
-                .orElseThrow(() -> new RuntimeException("Book not found"));
+        // Check if book exists
+        if (!bookRepository.existsById(ISBN)) {
+            throw new RuntimeException("Book not found");
+        }
 
         // Make sure ISBN matches
         bookDetails.setISBN(ISBN);
 
-        // Update all fields
-        book.setTitle(bookDetails.getTitle());
-        book.setAuthor(bookDetails.getAuthor());
-        book.setDescription(bookDetails.getDescription());
-        book.setGenre(bookDetails.getGenre());
-        book.setPrice(bookDetails.getPrice());
-        book.setQuantity(bookDetails.getQuantity());
-
-        return bookRepository.save(book);
+        // Save the updated book
+        return bookRepository.save(bookDetails);
     }
 
     public Optional<Book> getBookByISBN(String ISBN) {

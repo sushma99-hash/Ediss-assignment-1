@@ -6,11 +6,8 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -36,7 +33,6 @@ public class BookController {
      */
     @PostMapping
     public ResponseEntity<?> addBook(@Valid @RequestBody Book book) {
-        System.out.println("Received book: " + book); // Debugging: Print the book object
         try {
             // Attempt to save the book through the service layer
             Book savedBook = bookService.addBook(book);
@@ -45,6 +41,10 @@ public class BookController {
         } catch (IllegalArgumentException e) {
             // Return HTTP 422 UNPROCESSABLE_ENTITY if validation fails
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                    .body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            // Handle any other exceptions with BAD_REQUEST
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", e.getMessage()));
         }
     }
@@ -59,21 +59,41 @@ public class BookController {
     @PutMapping("/{ISBN}")
     public ResponseEntity<?> updateBook(@PathVariable String ISBN, @Valid @RequestBody Book book) {
         try {
+            // Check if ISBNs match
+            if (!ISBN.equals(book.getISBN())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", "ISBN in URL does not match ISBN in request body"));
+            }
+
             // Set the ISBN to ensure it matches the path variable
             book.setISBN(ISBN);
             // Attempt to update the book with the given ISBN
             Book updatedBook = bookService.updateBook(ISBN, book);
             // Return HTTP 200 OK with the updated book if successful
             return ResponseEntity.ok(updatedBook);
+        } catch (IllegalArgumentException e) {
+            // For validation errors
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", e.getMessage()));
         } catch (RuntimeException e) {
-            // Return HTTP 404 NOT_FOUND if the book doesn't exist
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "Book not found"));
+            // For book not found
+            if (e.getMessage().contains("not found")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("message", "Book not found"));
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", e.getMessage()));
+            }
+        } catch (Exception e) {
+            // Handle any other exceptions
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", e.getMessage()));
         }
     }
 
     /**
      * Handles GET requests to retrieve a book by its ISBN.
+     * This endpoint handles the path /books/{ISBN}
      *
      * @param ISBN The ISBN identifier of the book to retrieve
      * @return ResponseEntity with the found book or error message
@@ -89,18 +109,14 @@ public class BookController {
     }
 
     /**
-     * Exception handler for validation errors.
-     * This will convert validation errors to a structured response.
+     * Alternative endpoint to retrieve a book by its ISBN.
+     * This endpoint handles the path /books/isbn/{ISBN}
+     *
+     * @param ISBN The ISBN identifier of the book to retrieve
+     * @return ResponseEntity with the found book or error message
      */
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public Map<String, String> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
-        });
-        return errors;
+    @GetMapping("/isbn/{ISBN}")
+    public ResponseEntity<?> getBookByIsbn(@PathVariable String ISBN) {
+        return getBook(ISBN);
     }
 }
