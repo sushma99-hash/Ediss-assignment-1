@@ -1,5 +1,8 @@
 package cmu.edu.ds.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -25,6 +28,8 @@ public class Book {
      */
     @Id
     @NotBlank(message = "ISBN is mandatory")
+    @JsonProperty("ISBN")
+    @JsonAlias({"isbn"})
     private String ISBN;
 
     /**

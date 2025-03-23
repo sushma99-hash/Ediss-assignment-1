@@ -13,6 +13,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+//import static cmu.edu.ds.controller.CustomerController.logger;
+
 /**
  * REST controller that handles HTTP requests related to book operations.
  * Maps to the "/books" endpoint.
@@ -20,6 +25,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/books")
 public class BookController {
+    private static final Logger logger = LoggerFactory.getLogger(BookController.class);
 
     /**
      * Autowired book service to handle business logic operations.
@@ -34,27 +40,24 @@ public class BookController {
      * @return ResponseEntity with the created book or error message
      */
     @PostMapping
-    public ResponseEntity<?> addBook(@Valid @RequestBody Book book, BindingResult bindingResult) {
-        if (bindingResult.hasErrors()) {
-            Map<String, String> errors = new HashMap<>();
-            bindingResult.getFieldErrors().forEach(error ->
-                    errors.put(error.getField(), error.getDefaultMessage()));
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
-        }
+    public ResponseEntity<?> addBook(@Valid @RequestBody Book book) {
+        logger.info("Received request to add book: {}", book);
         try {
             Book savedBook = bookService.addBook(book);
+            logger.info("Book added successfully: {}", savedBook);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .header("Location", "/books/" + savedBook.getISBN())
                     .body(savedBook);
         } catch (IllegalArgumentException e) {
+            logger.error("Error adding book: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                     .body(Map.of("message", e.getMessage()));
         } catch (Exception e) {
+            logger.error("Unexpected error adding book: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", "An error occurred while adding the book."));
         }
     }
-
     /**
      * Handles PUT requests to update an existing book.
      *

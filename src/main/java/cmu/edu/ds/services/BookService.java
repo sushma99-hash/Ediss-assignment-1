@@ -4,25 +4,25 @@ import cmu.edu.ds.model.Book;
 import cmu.edu.ds.repository.BookRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 
 @Service
 public class BookService {
 
+    private static final Logger logger = LoggerFactory.getLogger(BookService.class);
+
     @Autowired
     private BookRepository bookRepository;
 
     public Book addBook(Book book) {
-        // Validate book first
-        validateBook(book);
-
-        // Check if ISBN already exists
+        logger.info("Adding book: {}", book);
         if (bookRepository.existsById(book.getISBN())) {
+            logger.warn("ISBN already exists: {}", book.getISBN());
             throw new IllegalArgumentException("This ISBN already exists in the system.");
         }
-
-        // Save the book
         return bookRepository.save(book);
     }
 
