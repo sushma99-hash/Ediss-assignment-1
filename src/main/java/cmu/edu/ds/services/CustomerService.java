@@ -15,9 +15,12 @@ public class CustomerService {
     private CustomerRepository customerRepository;
 
     public Customer addCustomer(Customer customer) {
+        // Check if user ID already exists
         if (customerRepository.findByUserId(customer.getUserId()).isPresent()) {
             throw new IllegalArgumentException("This user ID already exists in the system.");
         }
+
+        // Save the customer
         return customerRepository.save(customer);
     }
 

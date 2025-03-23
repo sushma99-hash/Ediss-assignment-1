@@ -17,9 +17,12 @@ public class BookService {
         // Validate book first
         validateBook(book);
 
+        // Check if ISBN already exists
         if (bookRepository.existsById(book.getISBN())) {
             throw new IllegalArgumentException("This ISBN already exists in the system.");
         }
+
+        // Save the book
         return bookRepository.save(book);
     }
 
