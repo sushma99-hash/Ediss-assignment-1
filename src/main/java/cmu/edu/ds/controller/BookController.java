@@ -6,8 +6,10 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -32,20 +34,24 @@ public class BookController {
      * @return ResponseEntity with the created book or error message
      */
     @PostMapping
-    public ResponseEntity<?> addBook(@Valid @RequestBody Book book) {
+    public ResponseEntity<?> addBook(@Valid @RequestBody Book book, BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            Map<String, String> errors = new HashMap<>();
+            bindingResult.getFieldErrors().forEach(error ->
+                    errors.put(error.getField(), error.getDefaultMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
+        }
         try {
-            // Attempt to save the book through the service layer
             Book savedBook = bookService.addBook(book);
-            // Return HTTP 201 CREATED status with the saved book in response body
-            return ResponseEntity.status(HttpStatus.CREATED).body(savedBook);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .header("Location", "/books/" + savedBook.getISBN())
+                    .body(savedBook);
         } catch (IllegalArgumentException e) {
-            // Return HTTP 422 UNPROCESSABLE_ENTITY if validation fails
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                     .body(Map.of("message", e.getMessage()));
         } catch (Exception e) {
-            // Handle any other exceptions with BAD_REQUEST
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("message", e.getMessage()));
+                    .body(Map.of("message", "An error occurred while adding the book."));
         }
     }
 
@@ -87,7 +93,7 @@ public class BookController {
         } catch (Exception e) {
             // Handle any other exceptions
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("message", e.getMessage()));
+                    .body(Map.of("message", "An error occurred while updating the book."));
         }
     }
 

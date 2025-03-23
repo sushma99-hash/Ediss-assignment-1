@@ -44,19 +44,21 @@ public class CustomerController {
      */
     @PostMapping
     public ResponseEntity<?> addCustomer(@Valid @RequestBody Customer customer) {
-        // Log the customer information being added
-        logger.info("Adding customer: {}", customer);
         try {
             // Attempt to save the customer through the service layer
             Customer savedCustomer = customerService.addCustomer(customer);
             // Return HTTP 201 CREATED status with the saved customer in response body
-            return ResponseEntity.status(HttpStatus.CREATED).body(savedCustomer);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .header("Location", "/customers/" + savedCustomer.getId())
+                    .body(savedCustomer);
         } catch (IllegalArgumentException e) {
-            // Log the error that occurred during customer creation
-            logger.error("Error adding customer: {}", e.getMessage());
-            // Return HTTP 422 UNPROCESSABLE_ENTITY if validation fails
+            // Return HTTP 422 UNPROCESSABLE_ENTITY if user ID already exists
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                     .body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            // Handle any other exceptions with BAD_REQUEST
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "An error occurred while adding the customer."));
         }
     }
 
@@ -68,11 +70,8 @@ public class CustomerController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<?> getCustomerById(@PathVariable Long id) {
-        // Log the customer ID being requested
-        logger.info("Retrieving customer by ID: {}", id);
         // Attempt to find the customer by ID
         Optional<Customer> customer = customerService.getCustomerById(id);
-
         return customer.<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Map.of("message", "Customer not found")));
@@ -86,11 +85,8 @@ public class CustomerController {
      */
     @GetMapping
     public ResponseEntity<?> getCustomerByUserId(@RequestParam String userId) {
-        // Log the userId being requested
-        logger.info("Retrieving customer by userId: {}", userId);
-        // Attempt to find the customer by userId
+        // Attempt to find the customer by user ID
         Optional<Customer> customer = customerService.getCustomerByUserId(userId);
-
         return customer.<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Map.of("message", "Customer not found")));
