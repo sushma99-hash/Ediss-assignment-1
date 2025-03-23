@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
@@ -43,20 +44,22 @@ public class CustomerController {
      * @return ResponseEntity with the created customer or error message
      */
     @PostMapping
-    public ResponseEntity<?> addCustomer(@Valid @RequestBody Customer customer) {
+    public ResponseEntity<?> addCustomer(@Valid @RequestBody Customer customer, BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            Map<String, String> errors = new HashMap<>();
+            bindingResult.getFieldErrors().forEach(error ->
+                    errors.put(error.getField(), error.getDefaultMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
+        }
         try {
-            // Attempt to save the customer through the service layer
             Customer savedCustomer = customerService.addCustomer(customer);
-            // Return HTTP 201 CREATED status with the saved customer in response body
             return ResponseEntity.status(HttpStatus.CREATED)
                     .header("Location", "/customers/" + savedCustomer.getId())
                     .body(savedCustomer);
         } catch (IllegalArgumentException e) {
-            // Return HTTP 422 UNPROCESSABLE_ENTITY if user ID already exists
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                     .body(Map.of("message", e.getMessage()));
         } catch (Exception e) {
-            // Handle any other exceptions with BAD_REQUEST
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", "An error occurred while adding the customer."));
         }
@@ -70,11 +73,17 @@ public class CustomerController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<?> getCustomerById(@PathVariable Long id) {
-        // Attempt to find the customer by ID
-        Optional<Customer> customer = customerService.getCustomerById(id);
-        return customer.<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Map.of("message", "Customer not found")));
+        try {
+            // Attempt to find the customer by ID
+            Optional<Customer> customer = customerService.getCustomerById(id);
+            return customer.<ResponseEntity<?>>map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(Map.of("message", "Customer not found")));
+        } catch (Exception e) {
+            // Handle any other exceptions
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "An error occurred while retrieving the customer."));
+        }
     }
 
     /**
@@ -85,11 +94,17 @@ public class CustomerController {
      */
     @GetMapping
     public ResponseEntity<?> getCustomerByUserId(@RequestParam String userId) {
-        // Attempt to find the customer by user ID
-        Optional<Customer> customer = customerService.getCustomerByUserId(userId);
-        return customer.<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Map.of("message", "Customer not found")));
+        try {
+            // Attempt to find the customer by user ID
+            Optional<Customer> customer = customerService.getCustomerByUserId(userId);
+            return customer.<ResponseEntity<?>>map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(Map.of("message", "Customer not found")));
+        } catch (Exception e) {
+            // Handle any other exceptions
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "An error occurred while retrieving the customer."));
+        }
     }
 
     /**

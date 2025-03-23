@@ -8,6 +8,7 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 /**
  * Entity class representing a Customer in the system.
@@ -36,12 +37,15 @@ public class Customer {
      * Name of the customer.
      */
     @NotBlank(message = "Name is mandatory")
+    @Size(max = 255, message = "Name must be at most 255 characters")
     private String name;
 
     /**
      * Phone number of the customer.
      */
     @NotBlank(message = "Phone is mandatory")
+    @Size(max = 20, message = "Phone must be at most 20 characters")
+    @Pattern(regexp = "^\\+\\d{1,3}-\\d{3}-\\d{3}-\\d{4}$", message = "Phone must be in the format +1-123-456-7890")
     private String phone;
 
     /**
@@ -59,6 +63,7 @@ public class Customer {
      * City of the customer.
      */
     @NotBlank(message = "City is mandatory")
+    @Size(max = 100, message = "City must be at most 100 characters")
     private String city;
 
     /**
