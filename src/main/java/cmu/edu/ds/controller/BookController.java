@@ -115,18 +115,9 @@ public class BookController {
      */
     @GetMapping("/{ISBN}")
     public ResponseEntity<?> getBook(@PathVariable String ISBN) {
-        try {
-            // Attempt to find the book by ISBN
-            Optional<Book> book = bookService.getBookByISBN(ISBN);
-            // Use Java 8 Optional to handle the case where the book is found or not
-            return book.<ResponseEntity<?>>map(ResponseEntity::ok)
-                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                            .body(Map.of("message", "Book not found")));
-        } catch (Exception e) {
-            // Handle any other exceptions
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("message", "An error occurred while retrieving the book."));
-        }
+        Optional<Book> book = bookService.getBookByISBN(ISBN);
+        return book.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     /**

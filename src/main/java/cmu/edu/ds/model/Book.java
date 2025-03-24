@@ -2,6 +2,7 @@ package cmu.edu.ds.model;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -21,6 +22,15 @@ import java.math.BigDecimal;
  */
 @Entity
 @Table(name = "books")
+@JsonPropertyOrder({
+        "ISBN",
+        "title",
+        "Author",
+        "description",
+        "genre",
+        "price",
+        "quantity"
+})
 public class Book {
     /**
      * Unique identifier for the book.
@@ -28,9 +38,8 @@ public class Book {
      */
     @Id
     @NotBlank(message = "ISBN is mandatory")
-    @JsonProperty("ISBN")
-    @JsonAlias({"isbn"})
-    private String ISBN;
+    @JsonProperty("ISBN")  // Force this exact name in JSON
+    private String isbn;
 
     /**
      * Title of the book.
@@ -44,6 +53,7 @@ public class Book {
      * Cannot be blank as enforced by validation.
      */
     @NotBlank(message = "Author is mandatory")
+    @JsonProperty("Author")
     private String author;
 
     /**
@@ -81,10 +91,10 @@ public class Book {
     // Getters and setters
     /**
      * Sets the ISBN of the book.
-     * @param ISBN The International Standard Book Number
+     * @param isbn The International Standard Book Number
      */
-    public void setISBN(String ISBN) {
-        this.ISBN = ISBN;
+    public void setISBN(String isbn) {
+        this.isbn = isbn;
     }
 
     /**
@@ -140,7 +150,7 @@ public class Book {
      * @return The book's ISBN
      */
     public String getISBN() {
-        return ISBN;
+        return isbn;
     }
 
     /**

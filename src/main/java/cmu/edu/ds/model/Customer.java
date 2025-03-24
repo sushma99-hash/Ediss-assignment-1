@@ -44,8 +44,7 @@ public class Customer {
      * Phone number of the customer.
      */
     @NotBlank(message = "Phone is mandatory")
-    @Size(max = 20, message = "Phone must be at most 20 characters")
-    @Pattern(regexp = "^\\+\\d{1,3}-\\d{3}-\\d{3}-\\d{4}$", message = "Phone must be in the format +1-123-456-7890")
+    @Pattern(regexp = "^\\+\\d{1,3}\\d{10}$", message = "Phone must be in the format +11234567890")
     private String phone;
 
     /**
