@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -40,24 +41,27 @@ public class BookController {
      * @return ResponseEntity with the created book or error message
      */
     @PostMapping
-    public ResponseEntity<?> addBook(@Valid @RequestBody Book book) {
-        logger.info("Received request to add book: {}", book);
+    public ResponseEntity<?> addBook(@Valid @RequestBody Book book, BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            Map<String, String> errors = new HashMap<>();
+            bindingResult.getFieldErrors().forEach(error -> {
+                String fieldName = error.getField();
+                String errorMessage = error.getDefaultMessage();
+                errors.put(fieldName, errorMessage);
+            });
+            return ResponseEntity.badRequest().body(errors);
+        }
+
         try {
             Book savedBook = bookService.addBook(book);
-            logger.info("Book added successfully: {}", savedBook);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .header("Location", "/books/" + savedBook.getISBN())
+            return ResponseEntity.created(URI.create("/books/" + savedBook.getISBN()))
                     .body(savedBook);
         } catch (IllegalArgumentException e) {
-            logger.error("Error adding book: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+            return ResponseEntity.unprocessableEntity()
                     .body(Map.of("message", e.getMessage()));
-        } catch (Exception e) {
-            logger.error("Unexpected error adding book: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("message", "An error occurred while adding the book."));
         }
     }
+
     /**
      * Handles PUT requests to update an existing book.
      *

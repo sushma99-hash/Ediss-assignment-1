@@ -1,9 +1,6 @@
 package cmu.edu.ds.model;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -22,15 +19,6 @@ import java.math.BigDecimal;
  */
 @Entity
 @Table(name = "books")
-@JsonPropertyOrder({
-        "ISBN",
-        "title",
-        "Author",
-        "description",
-        "genre",
-        "price",
-        "quantity"
-})
 public class Book {
     /**
      * Unique identifier for the book.
