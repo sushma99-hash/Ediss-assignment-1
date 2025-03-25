@@ -32,16 +32,6 @@ public class BookService {
     @Autowired(required = true)
     private BookRepository bookRepository;
 
-    /**
-     * Adds a new book to the system if the ISBN doesn't already exist.
-     * Note: The @RequestBody annotation here in a service is unusual and typically belongs in a controller.
-     *
-     * @param book The book to be added, validated with bean validation
-     * @param uriBuilder Builder for creating the location URI in the response
-     * @return ResponseEntity with appropriate status code, headers, and body:
-     *         - 201 Created with location header and book data if successful
-     *         - 422 Unprocessable Entity with error message if ISBN already exists
-     */
     public ResponseEntity<?> addBook(@Valid @RequestBody Books book, UriComponentsBuilder uriBuilder) {
         // Check if the ISBN already exists
         Optional<Books> existingBook = Optional.ofNullable(bookRepository.getBookByISBN(book.getISBN()));
@@ -51,38 +41,24 @@ public class BookService {
             return ResponseEntity.status(422).body(errorResponse);
         }
 
-        // Save new book
         bookRepository.addBook(book);
 
-        // Build the location URI for the header
         URI location = uriBuilder
                 .path("/books/{isbn}")
                 .buildAndExpand(book.getISBN())
                 .toUri();
 
-        // Return 201 Created status, Location header, and book in body
         return ResponseEntity
                 .created(location)
                 .body(book);
     }
 
-    /**
-     * Updates an existing book's details if it exists in the system.
-     * Validates that the ISBN in the path matches the ISBN in the book object.
-     *
-     * @param isbn The ISBN from the path parameter
-     * @param book The updated book details, validated with bean validation
-     * @return ResponseEntity with appropriate status code and body:
-     *         - 200 OK with updated book data if successful
-     *         - 400 Bad Request if ISBN in path doesn't match book object
-     *         - 404 Not Found if book with given ISBN doesn't exist
-     */
     public ResponseEntity<?> updateBook(String isbn, @Valid Books book) {
 
         if(!book.getISBN().equals(isbn)) {
             return ResponseEntity.status(400).body("ISBN does not match.");
         }
-        // Find existing book by ISBN
+
         Optional<Books> existingBook = Optional.ofNullable(bookRepository.getBookByISBN(isbn));
         if (!existingBook.isPresent()) {
             return ResponseEntity.status(404).body("ISBN not found.");
@@ -100,14 +76,6 @@ public class BookService {
         return ResponseEntity.status(200).body(updatedBook);
     }
 
-    /**
-     * Retrieves a book by its ISBN.
-     *
-     * @param isbn The ISBN of the book to retrieve
-     * @return ResponseEntity with appropriate status code and body:
-     *         - 200 OK with book data wrapped in Optional if found
-     *         - 404 Not Found with error message if no book with given ISBN exists
-     */
     public ResponseEntity<?> getBookByIsbn(String isbn) {
         Optional<Books> book = Optional.ofNullable(bookRepository.getBookByISBN(isbn));
         if (!book.isPresent()) {

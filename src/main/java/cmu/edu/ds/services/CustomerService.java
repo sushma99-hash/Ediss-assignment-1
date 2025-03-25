@@ -1,10 +1,5 @@
-package cmu.edu.ds.services;//package services;
+package cmu.edu.ds.services;
 
-/**
- * Service class that handles business logic for customer operations.
- * Provides methods for adding and retrieving customers with appropriate HTTP responses.
- * Acts as an intermediary between controllers and the repository layer.
- */
 
 //import models.Customer;
 import cmu.edu.ds.model.Customer;
@@ -29,13 +24,6 @@ public class CustomerService {
     @Autowired
     private CustomerRepository customerRepository;
 
-    /**
-     * Constructor for dependency injection of CustomerRepository.
-     * Note: This constructor is redundant with the @Autowired field above,
-     * but provides an alternative way to inject dependencies.
-     *
-     * @param customerRepository The repository to handle customer data operations
-     */
     public CustomerService(CustomerRepository customerRepository) {
         this.customerRepository = customerRepository;
     }
@@ -60,21 +48,17 @@ public class CustomerService {
             return ResponseEntity.status(422).body(errorResponse);
         }
 
-        // Save customer and check if the insert was successful
         int rowsAffected = customerRepository.addCustomer(customer);
 
         if (rowsAffected > 0) {
-            // Get the generated ID from the database
             long id = customerRepository.getCustomerByUserId(customer.getUserId()).get().getId();
             customer.setId(id);
 
-            // Build the location URI for the header
             URI location = uriBuilder
                     .path("/customers/{id}")
                     .buildAndExpand(id)
                     .toUri();
 
-            // Return 201 Created status, Location header, and customer in body
             return ResponseEntity
                     .created(location)
                     .body(customer);
@@ -83,16 +67,6 @@ public class CustomerService {
         }
     }
 
-    /**
-     * Retrieves a customer by their numeric ID.
-     * Includes input validation and exception handling.
-     *
-     * @param id The numeric ID of the customer to retrieve
-     * @return ResponseEntity with appropriate status code and body:
-     *         - 200 OK with customer data if found
-     *         - 400 Bad Request if ID is null, non-positive, or invalid
-     *         - 404 Not Found if no customer with given ID exists
-     */
     public ResponseEntity<?> getCustomerById(Long id) {
         Optional<Customer> customer;
         if (id == null || id <= 0) {
@@ -115,16 +89,6 @@ public class CustomerService {
     }
 
 
-    /**
-     * Retrieves a customer by their userId (username or external identifier).
-     * Includes input validation and exception handling.
-     *
-     * @param userId The userId of the customer to retrieve
-     * @return ResponseEntity with appropriate status code and body:
-     *         - 200 OK with customer data if found
-     *         - 400 Bad Request if userId is null, empty, or invalid
-     *         - 404 Not Found if no customer with given userId exists
-     */
     public ResponseEntity<?> getCustomerByUserId(String userId) {
         if (userId == null || userId.isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
