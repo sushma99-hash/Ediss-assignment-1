@@ -1,72 +1,118 @@
-package cmu.edu.ds.services;
+package cmu.edu.ds.services;//package services;
 
-import cmu.edu.ds.model.Book;
+/**
+ * Service class that handles business logic for book operations.
+ * Acts as an intermediary between controllers and the repository layer.
+ * Provides methods for adding, updating, and retrieving books with appropriate HTTP responses.
+ */
+
+import cmu.edu.ds.model.Books;
 import cmu.edu.ds.repository.BookRepository;
+import jakarta.validation.Valid;
+//import models.Books;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.util.UriComponentsBuilder;
+//import repositories.BookRepository;
 
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
 public class BookService {
 
-    private static final Logger logger = LoggerFactory.getLogger(BookService.class);
-
-    @Autowired
+    /**
+     * Injects the BookRepository to handle database operations.
+     * Required=true ensures that the application fails to start if the dependency cannot be injected.
+     */
+    @Autowired(required = true)
     private BookRepository bookRepository;
 
-    public Book addBook(Book book) {
-        logger.info("Adding book: {}", book);
-        if (bookRepository.existsById(book.getISBN())) {
-            logger.warn("ISBN already exists: {}", book.getISBN());
-            throw new IllegalArgumentException("This ISBN already exists in the system.");
+    /**
+     * Adds a new book to the system if the ISBN doesn't already exist.
+     * Note: The @RequestBody annotation here in a service is unusual and typically belongs in a controller.
+     *
+     * @param book The book to be added, validated with bean validation
+     * @param uriBuilder Builder for creating the location URI in the response
+     * @return ResponseEntity with appropriate status code, headers, and body:
+     *         - 201 Created with location header and book data if successful
+     *         - 422 Unprocessable Entity with error message if ISBN already exists
+     */
+    public ResponseEntity<?> addBook(@Valid @RequestBody Books book, UriComponentsBuilder uriBuilder) {
+        // Check if the ISBN already exists
+        Optional<Books> existingBook = Optional.ofNullable(bookRepository.getBookByISBN(book.getISBN()));
+        if (existingBook.isPresent()) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("message", "This ISBN already exists in the system.");
+            return ResponseEntity.status(422).body(errorResponse);
         }
-        return bookRepository.save(book);
+
+        // Save new book
+        bookRepository.addBook(book);
+
+        // Build the location URI for the header
+        URI location = uriBuilder
+                .path("/books/{isbn}")
+                .buildAndExpand(book.getISBN())
+                .toUri();
+
+        // Return 201 Created status, Location header, and book in body
+        return ResponseEntity
+                .created(location)
+                .body(book);
     }
 
-    public Book updateBook(String ISBN, Book bookDetails) {
-        // Validate book details first
-        validateBook(bookDetails);
+    /**
+     * Updates an existing book's details if it exists in the system.
+     * Validates that the ISBN in the path matches the ISBN in the book object.
+     *
+     * @param isbn The ISBN from the path parameter
+     * @param book The updated book details, validated with bean validation
+     * @return ResponseEntity with appropriate status code and body:
+     *         - 200 OK with updated book data if successful
+     *         - 400 Bad Request if ISBN in path doesn't match book object
+     *         - 404 Not Found if book with given ISBN doesn't exist
+     */
+    public ResponseEntity<?> updateBook(String isbn, @Valid Books book) {
 
-        // Check if book exists
-        if (!bookRepository.existsById(ISBN)) {
-            throw new RuntimeException("Book not found");
+        if(!book.getISBN().equals(isbn)) {
+            return ResponseEntity.status(400).body("ISBN does not match.");
         }
+        // Find existing book by ISBN
+        Optional<Books> existingBook = Optional.ofNullable(bookRepository.getBookByISBN(isbn));
+        if (!existingBook.isPresent()) {
+            return ResponseEntity.status(404).body("ISBN not found.");
+        }
+        // Update and save the book
+        Books updatedBook = existingBook.get();
+        updatedBook.setTitle(book.getTitle());
+        updatedBook.setAuthor(book.getAuthor());
+        updatedBook.setDescription(book.getDescription());
+        updatedBook.setGenre(book.getGenre());
+        updatedBook.setPrice(book.getPrice());
+        updatedBook.setQuantity(book.getQuantity());
 
-        // Make sure ISBN matches
-        bookDetails.setISBN(ISBN);
-
-        // Save the updated book
-        return bookRepository.save(bookDetails);
+        bookRepository.updateBook(updatedBook);
+        return ResponseEntity.status(200).body(updatedBook);
     }
 
-    public Optional<Book> getBookByISBN(String ISBN) {
-        return bookRepository.findById(ISBN);
-    }
-
-    private void validateBook(Book book) {
-        if (book.getISBN() == null || book.getISBN().trim().isEmpty()) {
-            throw new IllegalArgumentException("ISBN is mandatory");
+    /**
+     * Retrieves a book by its ISBN.
+     *
+     * @param isbn The ISBN of the book to retrieve
+     * @return ResponseEntity with appropriate status code and body:
+     *         - 200 OK with book data wrapped in Optional if found
+     *         - 404 Not Found with error message if no book with given ISBN exists
+     */
+    public ResponseEntity<?> getBookByIsbn(String isbn) {
+        Optional<Books> book = Optional.ofNullable(bookRepository.getBookByISBN(isbn));
+        if (!book.isPresent()) {
+            return ResponseEntity.status(404).body("ISBN not found.");
         }
-        if (book.getTitle() == null || book.getTitle().trim().isEmpty()) {
-            throw new IllegalArgumentException("Title is mandatory");
-        }
-        if (book.getAuthor() == null || book.getAuthor().trim().isEmpty()) {
-            throw new IllegalArgumentException("Author is mandatory");
-        }
-        if (book.getDescription() == null || book.getDescription().trim().isEmpty()) {
-            throw new IllegalArgumentException("Description is mandatory");
-        }
-        if (book.getGenre() == null || book.getGenre().trim().isEmpty()) {
-            throw new IllegalArgumentException("Genre is mandatory");
-        }
-        if (book.getPrice() == null) {
-            throw new IllegalArgumentException("Price is mandatory");
-        }
-        if (book.getQuantity() < 0) {
-            throw new IllegalArgumentException("Quantity must be greater than or equal to 0");
-        }
+        return ResponseEntity.status(200).body(book);
     }
 }
